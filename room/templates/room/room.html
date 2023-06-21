@@ -1,0 +1,250 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{room.name}}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+</head>
+<body>
+    <style>
+        .chat-header{
+          border-bottom:black;
+        }
+        .chat-history {
+            height: 400px;
+            overflow-y:auto;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        .date{
+          color:#363332;
+          font-size:12px;
+         }
+    
+        .chat-history li {
+            clear: both;
+            margin-bottom: 20px;
+        }
+    
+        .message-data {
+            float: left;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    
+        .message-data .username {
+            font-weight: bold;
+        }
+    
+        .message {
+            margin-top: 5px;
+            padding: 10px;
+            border-radius: 10px;
+            clear: both;
+            word-wrap: break-word;
+        }
+    
+        .my-message {
+            background-color: #DCF8C6;
+            float: right;
+        }
+    
+        .other-message {
+            background-color: #E9E9E9;
+            float: left;
+        }
+    </style>
+    
+
+    
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <a href="{% url 'rooms' %}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><path d="M4.83594 12.0001L11.043 18.2072L12.4573 16.793L7.66436 12.0001L12.4573 7.20718L11.043 5.79297L4.83594 12.0001ZM10.4858 12.0001L16.6929 18.2072L18.1072 16.793L13.3143 12.0001L18.1072 7.20718L16.6929 5.79297L10.4858 12.0001Z" fill="rgba(255,255,255,1)"></path></svg></a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarText">
+          <ul class="navbar-nav mr-auto">
+        
+          </ul>
+          <span class="navbar-text">
+            <a id="rooms" class="nav-link" href="{% url 'rooms' %}">Rooms</a>
+          </span>
+
+          <span class="navbar-text">
+            <a id="logout" class="nav-link" href="{% url 'logout' %}">Log out</a>
+          </span>
+          
+        </div>
+      </nav>
+
+
+
+
+
+    
+    <div class="container mb-4">
+        <h1 class="display-4 text-center">{{room.name}}</h1>
+      </div>
+    
+
+
+
+    <div class="container">
+        <div class="row clearfix">
+            <div class="col-lg-12">
+                <div class="card chat-app">
+                    <div id="plist" class="people-list">
+                        
+                        <ul class="list-unstyled chat-list mt-2 mb-0">
+                             <p class="members">Members</p>
+                             {% for user in users %}
+                              <li class="clearfix">
+                                <div class="about">
+                                
+                                    <div class="name">{{ user.username }}</div>
+                                    
+                                    <div class="status">
+                                        <i class="fa fa-circle {% if user.is_online %}online{% else %}offline{% endif %}"></i>
+                                        {% if user.last_login %}
+                                            {{ user.last_login|timesince }} ago
+                                        {% else %}
+                                            Never logged in
+                                        {% endif %}
+                                    </div>
+                                   </div>
+                                 </li>
+                               {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="chat">
+                        <div class="chat-header clearfix">
+                            <div class="row">
+                                
+                            </div>
+                        </div>
+                        <div class="chat-history">
+                            <ul class="m-b-0">
+                                     
+                                <li class="clearfix">
+                                    {% for message in messages %}
+                                        <div class="message-data text-right">
+                                          <span class="username"></span>
+                                        </div>
+                                        <div class="message my-message float-right">
+                                            <span class="username">{{message.user.username}}</span><br/>
+                                            {{message.content}}<br/>
+                                            <span class="date"></span>
+                                        </div>
+                                    {% endfor %}
+                                </li>
+                               
+                            </ul>
+                        </div>
+                        <div class="chat-message clearfix">
+                             <form method="post" action=".">
+                            <div class="input-group mb-0">
+                             <input id="message-form" type="text" class="form-control" placeholder="Your message...">  
+                                <div class="input-group-prepend">
+                                <button id="chat-message-submit"><i class="fa fa-send"></i></button>
+                                </div>                    
+                            </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+       
+    
+      {{ room.slug|json_script:"json-roomname"}}
+      {{ request.user.username|json_script:"json-username"}}
+
+     <script>
+       const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
+       const userName = JSON.parse(document.getElementById('json-username').textContent);
+
+       const chatSocket = new WebSocket(
+          'ws://'
+          + window.location.host
+          + '/ws/'
+          + roomName
+          + '/'
+       );
+
+       chatSocket.onmessage = function(e) {
+        console.log('onmessage')
+
+        const data = JSON.parse(e.data);
+        const d = new Date();
+        let hours = d.getHours();
+        let minutes = d.getMinutes();
+        let period = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        let text = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ' ' + period;
+
+        if (data.message) {
+           let html = '<div class="message my-message float-right">';
+               html += '<span class="username">' + data.username + '</span><br/>' + data.message + '<br/>';
+               html += '<span class="date">' + text + '</span></div>';
+              
+
+            document.querySelector('.chat-history').innerHTML += html;
+
+            scrollToBottom();
+        } else {
+           alert('The message was empty!');
+        }
+      }
+
+       chatSocket.onclose = function(e) {
+        console.log('onclose')
+      }
+
+      //
+
+      document.querySelector('#chat-message-submit').onclick = function(e) {
+         e.preventDefault();
+
+         const messageInputDom = document.querySelector('#message-form');
+         const message = messageInputDom.value;
+         
+         chatSocket.send(JSON.stringify({
+            'message': message,
+            'username': userName,
+            'room': roomName
+        }));
+
+        messageInputDom.value = '';
+
+        return false;
+
+     }
+
+     //
+
+      function scrollToBottom() {
+        const objDiv = document.querySelector('.chat-history');
+        objDiv.scrollTop = objDiv.scrollHeight;
+     }
+      
+       scrollToBottom()
+
+      
+       
+        
+     </script>
+
+
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+</body>
+</html>
